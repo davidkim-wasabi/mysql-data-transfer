@@ -57,13 +57,15 @@ def download_from_s3_bucket(file_name, object_name=None):
     return True
 
   except ClientError as e:
+    # Delete our created (empty) file, since error
+    if os.path.exists(file_name):
+      print("Deleting empty file \"{}\".".format(file_name))
+      os.remove(file_name)
     # Only catch the (common) 404 error, nothing else
     if e.response['Error']['Code'] == "404":
       print("The file does not exist.")
       return False
-    if os.path.exists(file_name):
-      print("Deleting empty file \"{}\".".format(file_name))
-      os.remove(file_name)
+
     raise
 
 
