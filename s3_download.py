@@ -48,8 +48,8 @@ def download_from_s3_bucket(file_name, object_name=None):
     print("Cleaned up object from bucket.")
 
     # Call process_folder from chdbio.py
-    sys.path.append(os.path.abspath(os.path.join("..", "clickhouse_records_generator")))
-    from clickhouse_records_generator.chdbio import process_folder
+    sys.path.append(os.path.abspath(os.path.join("..", "clickhouse_import")))
+    from clickhouse_import.chdbio import process_folder
     process_folder()
 
     return True
