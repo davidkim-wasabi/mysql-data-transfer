@@ -61,7 +61,9 @@ def download_from_s3_bucket(file_name, object_name=None):
     if e.response['Error']['Code'] == "404":
       print("The file does not exist.")
       return False
-    os.remove(file_name)
+    if os.path.exists(file_name):
+      print("Deleting empty file \"{}\".".format(file_name))
+      os.remove(file_name)
     raise
 
 
