@@ -39,20 +39,20 @@ def download_from_s3_bucket(file_name, object_name=None):
     object_name, _ = os.path.splitext(os.path.basename(file_name))
 
   try:
-    fp = open(file_name, 'wb')
+    with open(file_name, 'wb') as fp:
+      # Download the gz file and unzip it
+      download_gzipped(client, bucket, object_name, fp)
+      print("Successfully downloaded file!")
 
-    # Download the gz file and unzip it
-    download_gzipped(client, bucket, object_name, fp)
-    print("Successfully downloaded file!")
+      # Now clean up the bucket, since we no longer need the object
+      client.delete_object(Bucket=bucket, Key=object_name)
+      print("Cleaned up object from bucket.")
+      time.sleep(60)
 
-    # Now clean up the bucket, since we no longer need the object
-    client.delete_object(Bucket=bucket, Key=object_name)
-    print("Cleaned up object from bucket.")
-
-    # Call process_folder from chdbio.py
-    sys.path.append(os.path.abspath(os.path.join("..", "clickhouse_import")))
-    from chdbio import process_folder
-    process_folder()
+      # Call process_folder from chdbio.py
+      sys.path.append(os.path.abspath(os.path.join("..", "clickhouse_import")))
+      from chdbio import process_folder
+      process_folder()
 
     return True
 
