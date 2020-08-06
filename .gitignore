@@ -4,6 +4,9 @@
 # VSCode
 .vscode/*
 
+# Logs
+*log.txt
+
 # Confidential
 mysql_secrets.py
 aws_secrets.py
