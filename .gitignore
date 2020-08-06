@@ -1,0 +1,9 @@
+# Junk
+.DS_Store
+
+# VSCode
+.vscode/*
+
+# Confidential
+mysql_secrets.py
+aws_secrets.py
