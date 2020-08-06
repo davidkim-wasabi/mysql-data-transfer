@@ -8,6 +8,8 @@ import gzip
 import shutil
 from datetime import date, datetime
 
+debugging = True
+
 
 # Downloads the gzipped file from s3 and unzips it.
 def download_gzipped(client, bucket, key, fp, compressed_fp=None):
@@ -74,6 +76,9 @@ if __name__ == "__main__":
   today = date.today()
   today = today.strftime("%Y-%m-%d")
   now = datetime.now().replace(microsecond=0)
+  # Allows manual setting of a date for debugging purposes
+  if debugging:
+    today = datetime(2020, 8, 5, 0, 0).strftime("%Y-%m-%d")
   # Directory to which the reports get downloaded
   fname = os.path.join("/home", "users", "akendall", "gen2", "billing reports",
                        "BucketUtilization-{}.csv".format(today))
