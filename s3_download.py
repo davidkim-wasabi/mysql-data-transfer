@@ -8,7 +8,7 @@ import gzip
 import shutil
 from datetime import date, datetime
 
-debugging = True
+debugging = False
 
 
 # Downloads the gzipped file from s3 and unzips it.
@@ -51,7 +51,7 @@ def download_from_s3_bucket(file_name, object_name=None):
 
     # Call process_folder from chdbio.py
     sys.path.append(os.path.abspath(os.path.join("..", "clickhouse_import")))
-    from clickhouse_import.chdbio import process_folder
+    from chdbio import process_folder
     process_folder()
 
     return True
