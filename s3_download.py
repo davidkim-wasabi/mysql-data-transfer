@@ -2,6 +2,7 @@ import aws_secrets
 import sys
 import os
 import boto3
+import time
 from botocore.exceptions import ClientError
 from io import BytesIO
 import gzip
