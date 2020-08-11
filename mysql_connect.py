@@ -98,11 +98,37 @@ def export_all(cnx):
   cursor.execute("SHOW TABLES FROM BA_Billing;")
   tables_billing = cursor.fetchall()
 
-  print(tables_billing)
-  # query = "SELECT * FROM BA_Billing.{};".format(table)
-  # print("Querying: \"{}\"".format(query))
-  # cursor.execute(query)
-  # rows = cursor.fetchall()
+  # Go through the BA_Global list and select everything into a big dump
+  for tbl, in tables_global:
+    print("Starting to fetch the contents from \"BA_Global.{}\"...".format(tbl))
+    cursor.execute("SELECT * FROM BA_Global.{}".format(tbl))
+    rows = cursor.fetchall()
+    print("Done fetching. Now trying to write to CSV...")
+
+    # Now write the results into a csv
+    fname = os.path.join("BA_Global", "{}.csv".format(tbl))
+    with open(fname, "w") as fp:
+      bucket_util_file = csv.writer(fp)
+      headers = [i[0] for i in cursor.description]  # Include a header row
+      bucket_util_file.writerow(headers)
+      bucket_util_file.writerows(rows)
+    print("Wrote fetched data to \"{}\".".format(fname))
+
+  # Do the same with BA_Billing
+  for tbl, in tables_billing:
+    print("Starting to fetch the contents from \"BA_Billing.{}\"...".format(tbl))
+    cursor.execute("SELECT * FROM BA_Billing.{}".format(tbl))
+    rows = cursor.fetchall()
+    print("Done fetching. Now trying to write to CSV...")
+
+    # Now write the results into a csv
+    fname = os.path.join("BA_Billing", "{}.csv".format(tbl))
+    with open(fname, "w") as fp:
+      bucket_util_file = csv.writer(fp)
+      headers = [i[0] for i in cursor.description]  # Include a header row
+      bucket_util_file.writerow(headers)
+      bucket_util_file.writerows(rows)
+    print("Wrote fetched data to \"{}\".".format(fname))
 
 
 # Establishes a connection to a MySQL database with a specified dbname and hostname.
