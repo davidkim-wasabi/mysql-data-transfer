@@ -89,6 +89,22 @@ def daily_routine(cnx):
       cron_log.write("[{}] Ran script and did not fetch data.\n".format(now))
 
 
+def export_all(cnx):
+  cursor = cnx.cursor()
+
+  # First, get the list of tables from the desired databases
+  cursor.execute("SHOW TABLES FROM BA_Global;")
+  tables_global = cursor.fetchall()
+  cursor.execute("SHOW TABLES FROM BA_Billing;")
+  tables_billing = cursor.fetchall()
+
+  print(tables_billing)
+  # query = "SELECT * FROM BA_Billing.{};".format(table)
+  # print("Querying: \"{}\"".format(query))
+  # cursor.execute(query)
+  # rows = cursor.fetchall()
+
+
 # Establishes a connection to a MySQL database with a specified dbname and hostname.
 # Operation is the function to execute after connecting. Function must take in a connection.
 def connect_to_db(host="db03.beta1", db="BA_Billing", operation=daily_routine):
@@ -119,4 +135,4 @@ if __name__ == "__main__":
   os.chdir(dname)
 
   # Let the daily shenanigans begin!
-  connect_to_db(operation=daily_routine)
+  connect_to_db(operation=export_all)
