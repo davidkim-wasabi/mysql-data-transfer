@@ -11,3 +11,7 @@ __pycache__
 # Confidential
 mysql_secrets.py
 aws_secrets.py
+
+# Folders
+BA_Billing/*.csv
+BA_Global/*.csv
