@@ -26,14 +26,13 @@ def download_gzipped(client, bucket, key, fp, compressed_fp=None):
 # Downloads the file with the specified file name from s3.
 # Returns True if the download is successful, and False if the file was not found.
 # Raises an exception otherwise.
-def download_from_s3_bucket(file_name, object_name=None):
+def download_from_s3_bucket(file_name, object_name=None, bucket="billing-uploads"):
   # Create s3 session & client
   session = boto3.session.Session()
   client = session.client(service_name="s3",
                           aws_access_key_id=aws_secrets.access_id,
                           aws_secret_access_key=aws_secrets.access_key,
                           endpoint_url="http://s3.wasabibeta.com")
-  bucket = "billing-uploads"
 
   # Assigns to object name the file name without the extension
   if object_name is None:
@@ -48,12 +47,6 @@ def download_from_s3_bucket(file_name, object_name=None):
       # Now clean up the bucket, since we no longer need the object
       client.delete_object(Bucket=bucket, Key=object_name)
       print("Cleaned up object from bucket.")
-      time.sleep(60)
-
-      # Call process_folder from chdbio.py
-      sys.path.append(os.path.abspath(os.path.join("..", "clickhouse_import")))
-      from chdbio import process_folder
-      process_folder()
 
     return True
 
@@ -70,14 +63,8 @@ def download_from_s3_bucket(file_name, object_name=None):
     raise
 
 
-# Runs when run as a script
-if __name__ == "__main__":
-  # Changes the working directory to be relative to the current file's folder
-  abspath = os.path.abspath(__file__)
-  dname = os.path.dirname(abspath)
-  os.chdir(dname)
-
-  # Try to download the daily pull
+# Function to be run for the daily fetch operation
+def daily_pull():
   today = date.today()
   today = today.strftime("%Y-%m-%d")
   now = datetime.now().replace(microsecond=0)
@@ -89,3 +76,23 @@ if __name__ == "__main__":
                        "BucketUtilization-{}.csv".format(today))
   print("[{}] Attempting to download the daily report to \"{}\"...".format(now, fname))
   download_from_s3_bucket(fname)
+
+
+def import_all():
+  # TODO
+  download_from_s3_bucket(file_name="", bucket="BA_Billing")
+  download_from_s3_bucket(file_name="", bucket="BA_Global")
+
+
+# Runs when run as a script
+if __name__ == "__main__":
+  # Changes the working directory to be relative to the current file's folder
+  abspath = os.path.abspath(__file__)
+  dname = os.path.dirname(abspath)
+  os.chdir(dname)
+
+  if len(sys.argv) > 1:
+    import_all()
+  else:
+    # Try to download the daily pull
+    daily_pull()

@@ -98,21 +98,28 @@ def export_all(cnx):
   cursor.execute("SHOW TABLES FROM BA_Billing;")
   tables_billing = cursor.fetchall()
 
+  # Write the lists to files to retrieve later
+  with open("tables_list", "w") as tables_list:
+    # TODO
+    pass
+
   # Go through the BA_Global list and select everything into a big dump
   for tbl, in tables_global:
-    print("Starting to fetch the contents from \"BA_Global.{}\"...".format(tbl))
-    cursor.execute("SELECT * FROM BA_Global.{}".format(tbl))
-    rows = cursor.fetchall()
-    print("Done fetching. Now trying to write to CSV...")
+    if tbl != "AccessKeyData" and tbl != "PolicyData":
+      print("Starting to fetch the contents from \"BA_Global.{}\"...".format(tbl))
+      cursor.execute("SELECT * FROM BA_Global.{}".format(tbl))
+      rows = cursor.fetchall()
+      print("Done fetching. Now trying to write to CSV...")
 
-    # Now write the results into a csv
-    fname = os.path.join("BA_Global", "{}.csv".format(tbl))
-    with open(fname, "w") as fp:
-      bucket_util_file = csv.writer(fp)
-      headers = [i[0] for i in cursor.description]  # Include a header row
-      bucket_util_file.writerow(headers)
-      bucket_util_file.writerows(rows)
-    print("Wrote fetched data to \"{}\".".format(fname))
+      # Now write the results into a csv
+      fname = os.path.join("BA_Global", "{}.csv".format(tbl))
+      with open(fname, "wb") as fp:
+        bucket_util_file = csv.writer(fp)
+        headers = [i[0] for i in cursor.description]  # Include a header row
+        bucket_util_file.writerow(headers)
+        bucket_util_file.writerows(rows)
+      print("Wrote fetched data to \"{}\".".format(fname))
+      upload_to_s3_bucket(fname, bucket="global-uploads")
 
   # Do the same with BA_Billing
   for tbl, in tables_billing:
@@ -123,12 +130,13 @@ def export_all(cnx):
 
     # Now write the results into a csv
     fname = os.path.join("BA_Billing", "{}.csv".format(tbl))
-    with open(fname, "w") as fp:
+    with open(fname, "wb") as fp:
       bucket_util_file = csv.writer(fp)
       headers = [i[0] for i in cursor.description]  # Include a header row
       bucket_util_file.writerow(headers)
       bucket_util_file.writerows(rows)
     print("Wrote fetched data to \"{}\".".format(fname))
+    upload_to_s3_bucket(fname, bucket="billing-uploads")
 
 
 # Establishes a connection to a MySQL database with a specified dbname and hostname.
