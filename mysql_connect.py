@@ -136,7 +136,8 @@ def export_all(cnx):
       bucket_util_file.writerow(headers)
       bucket_util_file.writerows(rows)
     print("Wrote fetched data to \"{}\".".format(fname))
-    upload_to_s3_bucket(fname, bucket="billing-uploads")
+    fname_base, _ = os.path.splitext(os.path.basename(fname))
+    upload_to_s3_bucket(fname_base, bucket="billing-uploads")
 
 
 # Establishes a connection to a MySQL database with a specified dbname and hostname.

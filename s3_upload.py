@@ -44,14 +44,14 @@ def upload_to_s3_bucket(file_name, bucket="billing-uploads"):
   object_name, _ = os.path.splitext(os.path.basename(file_name))
 
   # If bucket does not exist, create it
-  if bucket_exists(client, bucket):
+  if not bucket_exists(client, bucket):
     print("Bucket \"{}\" does not exist... creating it!".format(bucket))
     client.create_bucket(Bucket=bucket)
 
   # Try to upload the file
   print("Uploading (gzipped) {} with key \"{}\"...".format(file_name, object_name))
-  fp = open(file_name, 'rb')
-  upload_gzipped(client, bucket, object_name, fp)
+  with open(file_name, 'rb') as fp:
+    upload_gzipped(client, bucket, object_name, fp)
   print("Successfully uploaded file!")
 
   # Print contents of bucket (for debugging)
