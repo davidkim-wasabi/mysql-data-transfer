@@ -105,7 +105,7 @@ def export_all(cnx):
 
   # Go through the BA_Global list and select everything into a big dump
   for tbl, in tables_global:
-    if tbl != "AccessKeyData" and tbl != "PolicyData":
+    if tbl != "AccessKeyData" and tbl != "PolicyData" and tbl != "BucketData":
       print("Starting to fetch the contents from \"BA_Global.{}\"...".format(tbl))
       cursor.execute("SELECT * FROM BA_Global.{}".format(tbl))
       rows = cursor.fetchall()
