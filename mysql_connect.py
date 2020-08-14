@@ -105,7 +105,8 @@ def export_all(cnx):
 
   # Go through the BA_Global list and select everything into a big dump
   for tbl, in tables_global:
-    if tbl != "AccessKeyData" and tbl != "PolicyData" and tbl != "BucketData":
+    if tbl != "AccessKeyData" and tbl != "PolicyData" \
+    and tbl != "BucketData" and tbl != "PolicyVersionData":
       print("Starting to fetch the contents from \"BA_Global.{}\"...".format(tbl))
       cursor.execute("SELECT * FROM BA_Global.{}".format(tbl))
       rows = cursor.fetchall()
@@ -119,7 +120,8 @@ def export_all(cnx):
         bucket_util_file.writerow(headers)
         bucket_util_file.writerows(rows)
       print("Wrote fetched data to \"{}\".".format(fname))
-      upload_to_s3_bucket(fname, bucket="global-uploads")
+      fname_base, _ = os.path.splitext(os.path.basename(fname))
+      upload_to_s3_bucket(fname_base, bucket="global-uploads")
 
   # Do the same with BA_Billing
   for tbl, in tables_billing:
