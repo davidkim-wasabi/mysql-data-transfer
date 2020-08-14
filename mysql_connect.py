@@ -99,7 +99,7 @@ def export_all(cnx):
   tables_billing = cursor.fetchall()
 
   # Write the lists to files to retrieve later
-  with open("tables_list", "w") as tables_list:
+  with open("tables_list.txt", "w") as tables_list:
     # TODO
     pass
 
@@ -113,7 +113,7 @@ def export_all(cnx):
 
       # Now write the results into a csv
       fname = os.path.join("BA_Global", "{}.csv".format(tbl))
-      with open(fname, "wb") as fp:
+      with open(fname, "w") as fp:
         bucket_util_file = csv.writer(fp)
         headers = [i[0] for i in cursor.description]  # Include a header row
         bucket_util_file.writerow(headers)
@@ -130,7 +130,7 @@ def export_all(cnx):
 
     # Now write the results into a csv
     fname = os.path.join("BA_Billing", "{}.csv".format(tbl))
-    with open(fname, "wb") as fp:
+    with open(fname, "w") as fp:
       bucket_util_file = csv.writer(fp)
       headers = [i[0] for i in cursor.description]  # Include a header row
       bucket_util_file.writerow(headers)
