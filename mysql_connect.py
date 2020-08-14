@@ -103,10 +103,13 @@ def export_all(cnx):
     # TODO
     pass
 
+  tables_exclude = [
+      "AccessKeyData", "PolicyData", "BucketData", "PolicyVersionData", "BucketUtilization"
+  ]
+
   # Go through the BA_Global list and select everything into a big dump
   for tbl, in tables_global:
-    if tbl != "AccessKeyData" and tbl != "PolicyData" \
-    and tbl != "BucketData" and tbl != "PolicyVersionData":
+    if not tbl in tables_exclude:
       print("Starting to fetch the contents from \"BA_Global.{}\"...".format(tbl))
       cursor.execute("SELECT * FROM BA_Global.{}".format(tbl))
       rows = cursor.fetchall()
@@ -124,20 +127,21 @@ def export_all(cnx):
 
   # Do the same with BA_Billing
   for tbl, in tables_billing:
-    print("Starting to fetch the contents from \"BA_Billing.{}\"...".format(tbl))
-    cursor.execute("SELECT * FROM BA_Billing.{}".format(tbl))
-    rows = cursor.fetchall()
-    print("Done fetching. Now trying to write to CSV...")
+    if not tbl in tables_exclude:
+      print("Starting to fetch the contents from \"BA_Billing.{}\"...".format(tbl))
+      cursor.execute("SELECT * FROM BA_Billing.{}".format(tbl))
+      rows = cursor.fetchall()
+      print("Done fetching. Now trying to write to CSV...")
 
-    # Now write the results into a csv
-    fname = os.path.join("BA_Billing", "{}.csv".format(tbl))
-    with open(fname, "w") as fp:
-      bucket_util_file = csv.writer(fp)
-      headers = [i[0] for i in cursor.description]  # Include a header row
-      bucket_util_file.writerow(headers)
-      bucket_util_file.writerows(rows)
-    print("Wrote fetched data to \"{}\".".format(fname))
-    upload_to_s3_bucket(fname, bucket="billing-uploads")
+      # Now write the results into a csv
+      fname = os.path.join("BA_Billing", "{}.csv".format(tbl))
+      with open(fname, "w") as fp:
+        bucket_util_file = csv.writer(fp)
+        headers = [i[0] for i in cursor.description]  # Include a header row
+        bucket_util_file.writerow(headers)
+        bucket_util_file.writerows(rows)
+      print("Wrote fetched data to \"{}\".".format(fname))
+      upload_to_s3_bucket(fname, bucket="billing-uploads")
 
 
 # Establishes a connection to a MySQL database with a specified dbname and hostname.
