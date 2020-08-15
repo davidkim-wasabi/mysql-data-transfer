@@ -104,10 +104,11 @@ def export_all(cnx):
   ]
 
   # Write the lists to files to retrieve later
-  with open("tables_list.txt", "w") as tables_list:
+  with open("tables_global.txt", "w") as tables_list:
     for tbl_g, in tables_global:
       if not tbl_g in tables_exclude:
         tables_list.write("{}\n".format(tbl_g))
+  with open("tables_billing.txt", "w") as tables_list:
     for tbl_b, in tables_billing:
       if not tbl_b in tables_exclude:
         tables_list.write("{}\n".format(tbl_b))
