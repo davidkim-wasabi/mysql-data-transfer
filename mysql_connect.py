@@ -98,16 +98,19 @@ def export_all(cnx):
   cursor.execute("SHOW TABLES FROM BA_Billing;")
   tables_billing = cursor.fetchall()
 
-  # Write the lists to files to retrieve later
-  with open("tables_list.txt", "w") as tables_list:
-    for tbl_g in tables_global:
-      tables_list.write("{}\n".format(tbl_g))
-    for tbl_b in tables_billing:
-      tables_list.write("{}\n".format(tbl_b))
-
+  # Tables to exclude from parsing & writing
   tables_exclude = [
       "AccessKeyData", "PolicyData", "BucketData", "PolicyVersionData", "BucketUtilization"
   ]
+
+  # Write the lists to files to retrieve later
+  with open("tables_list.txt", "w") as tables_list:
+    for tbl_g in tables_global:
+      if not tbl_g in tables_exclude:
+        tables_list.write("{}\n".format(tbl_g))
+    for tbl_b in tables_billing:
+      if not tbl_b in tables_exclude:
+        tables_list.write("{}\n".format(tbl_b))
 
   # Go through the BA_Global list and select everything into a big dump
   for tbl, in tables_global:
