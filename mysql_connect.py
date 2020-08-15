@@ -100,8 +100,10 @@ def export_all(cnx):
 
   # Write the lists to files to retrieve later
   with open("tables_list.txt", "w") as tables_list:
-    # TODO
-    pass
+    for tbl_g in tables_global:
+      tables_list.write("{}\n".format(tbl_g))
+    for tbl_b in tables_billing:
+      tables_list.write("{}\n".format(tbl_b))
 
   tables_exclude = [
       "AccessKeyData", "PolicyData", "BucketData", "PolicyVersionData", "BucketUtilization"
