@@ -15,3 +15,8 @@ aws_secrets.py
 # Folders
 BA_Billing/*.csv
 BA_Global/*.csv
+
+# Miscellaneous
+tables_global.txt
+tables_billing.txt
+
