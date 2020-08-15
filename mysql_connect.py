@@ -108,12 +108,12 @@ def export_all(cnx):
     for tbl_g, in tables_global:
       if not tbl_g in tables_exclude:
         tables_list.write("{}\n".format(tbl_g))
-    upload_to_s3_bucket(tables_list, bucket="global-uploads")
+    upload_to_s3_bucket("tables_global.txt", bucket="global-uploads")
   with open("tables_billing.txt", "w") as tables_list:
     for tbl_b, in tables_billing:
       if not tbl_b in tables_exclude:
         tables_list.write("{}\n".format(tbl_b))
-    upload_to_s3_bucket(tables_list, bucket="billing-uploads")
+    upload_to_s3_bucket("tables_billing.txt", bucket="billing-uploads")
 
   # Go through the BA_Global list and select everything into a big dump
   for tbl, in tables_global:
