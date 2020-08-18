@@ -215,9 +215,9 @@ def parse_mysql_schema(table_schema, return_primary_key=False):
 
     # Check if the column is nullable
     if nullable == "NO":
-      col_string += "Nullable({}),\n".format(convert_mysql_to_clickhouse(col_type))
+      col_string += "Nullable({}),\n  ".format(convert_mysql_to_clickhouse(col_type))
     else:
-      col_string += "{},\n".format(convert_mysql_to_clickhouse(col_type))
+      col_string += "{},\n  ".format(convert_mysql_to_clickhouse(col_type))
 
     # Append it to the result list
     output_list.append(col_string)
@@ -228,6 +228,7 @@ def parse_mysql_schema(table_schema, return_primary_key=False):
 
   # Now join 'em up
   out_string = "".join(output_list)
+  out_string = out_string[:-5]
 
   # Do we return just the ClickHouse query string, or do we also return the primary key?
   if return_primary_key:
@@ -271,13 +272,13 @@ def export_schemas(cnx, db_name="all"):
     fname = os.path.join("GDB_dbstarter", db_name, "{}.txt".format(tbl))
     with open(fname, "w") as clickhouse_schema:
       clickhouse_schema.write("""\
-        CREATE TABLE {}
-        (
-          {}
-        )
-        ENGINE = ReplacingMergeTree
-        ORDER BY {}
-        """.format(db_name, columns, order_by))
+CREATE TABLE {}
+(
+  {}
+)
+ENGINE = ReplacingMergeTree
+ORDER BY {}
+""".format(db_name, columns, order_by))
 
 
 # Establishes a connection to a MySQL database with a specified dbname and hostname.
