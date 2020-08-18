@@ -228,7 +228,7 @@ def parse_mysql_schema(table_schema, return_primary_key=False):
 
   # Now join 'em up
   out_string = "".join(output_list)
-  out_string = out_string[:-5]
+  out_string = out_string[:-4]
 
   # Do we return just the ClickHouse query string, or do we also return the primary key?
   if return_primary_key:
