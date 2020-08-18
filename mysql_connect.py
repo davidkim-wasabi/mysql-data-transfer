@@ -120,16 +120,20 @@ def export_all(cnx):
     if not tbl in tables_exclude:
       print("Starting to fetch the contents from \"BA_Global.{}\"...".format(tbl))
       cursor.execute("SELECT * FROM BA_Global.{};".format(tbl))
-      rows = cursor.fetchall()
-      print("Done fetching. Now trying to write to CSV...")
-
       # Now write the results into a csv
       fname = os.path.join("BA_Global", "{}.csv".format(tbl))
       with open(fname, "w") as fp:
-        bucket_util_file = csv.writer(fp)
+        csv_file = csv.writer(fp)
         headers = [i[0] for i in cursor.description]  # Include a header row
-        bucket_util_file.writerow(headers)
-        bucket_util_file.writerows(rows)
+        csv_file.writerow(headers)
+      # Infinite loop to make sure only 1000 rows max written at once
+      while True:
+        rows = cursor.fetchmany(1000)
+        if not rows:
+          break
+        with open(fname, "a") as fp:
+          csv_file = csv.writer(fp)
+          csv_file.writerows(rows)
       print("Wrote fetched data to \"{}\".".format(fname))
       upload_to_s3_bucket(fname, bucket="global-uploads")
 
@@ -138,16 +142,20 @@ def export_all(cnx):
     if not tbl in tables_exclude:
       print("Starting to fetch the contents from \"BA_Billing.{}\"...".format(tbl))
       cursor.execute("SELECT * FROM BA_Billing.{};".format(tbl))
-      rows = cursor.fetchall()
-      print("Done fetching. Now trying to write to CSV...")
-
       # Now write the results into a csv
       fname = os.path.join("BA_Billing", "{}.csv".format(tbl))
       with open(fname, "w") as fp:
-        bucket_util_file = csv.writer(fp)
+        csv_file = csv.writer(fp)
         headers = [i[0] for i in cursor.description]  # Include a header row
-        bucket_util_file.writerow(headers)
-        bucket_util_file.writerows(rows)
+        csv_file.writerow(headers)
+      # Infinite loop to make sure only 1000 rows max written at once
+      while True:
+        rows = cursor.fetchmany(1000)
+        if not rows:
+          break
+        with open(fname, "a") as fp:
+          csv_file = csv.writer(fp)
+          csv_file.writerows(rows)
       print("Wrote fetched data to \"{}\".".format(fname))
       upload_to_s3_bucket(fname, bucket="billing-uploads")
 
