@@ -160,11 +160,30 @@ def export_all(cnx):
       upload_to_s3_bucket(fname, bucket="billing-uploads")
 
 
-# Reads the table list file line-by-line and creates a "rough draft" schema for each.
-def export_schemas(db_name="global"):
+# Reads the table list file line-by-line and creates a "rough draft" CH schema for each.
+def export_schemas(cnx, db_name="global"):
+  cursor = cnx.cursor()
+
+  # Get the list of tables
   with open("tables_{}.txt".format(db_name), "r") as tbls:
-    tables_list = tbls.readlines()
-  print(tables_list)
+    tables_list = tbls.read().splitlines()
+
+  # Iterate through the list and generate the schemas
+  for tbl in tables_list:
+    cursor.execute("DESCRIBE BA_{}.{};".format(db_name.capitalize(), tbl))
+    mysql_schema = cursor.fetchall()
+    print(mysql_schema)
+
+    with open("{}.txt".format(tbl), "w") as clickhouse_schema:
+      clickhouse_schema.write("""\
+        CREATE TABLE BA_{}
+        (
+
+        )
+        ENGINE = ReplacingMergeTree
+        ORDER BY 
+        """.format(db_name.capitalize()))
+    break
 
 
 # Establishes a connection to a MySQL database with a specified dbname and hostname.
