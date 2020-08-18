@@ -272,13 +272,13 @@ def export_schemas(cnx, db_name="all"):
     fname = os.path.join("GDB_dbstarter", db_name, "{}.txt".format(tbl))
     with open(fname, "w") as clickhouse_schema:
       clickhouse_schema.write("""\
-CREATE TABLE {}
+CREATE TABLE {}.{}
 (
   {}
 )
 ENGINE = ReplacingMergeTree
 ORDER BY {}
-""".format(db_name, columns, order_by))
+""".format(db_name, tbl, columns, order_by))
 
 
 # Establishes a connection to a MySQL database with a specified dbname and hostname.
