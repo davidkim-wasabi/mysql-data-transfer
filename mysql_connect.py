@@ -193,11 +193,14 @@ def convert_mysql_to_clickhouse(col_type):
     return "Int64"
   if "float" in col_type or "double" in col_type or "real" in col_type:
     return "Float64"
-  if "varchar" in col_type:
+  if "varchar" in col_type or "text" in col_type:
     return "String"
   if "datetime" in col_type:
     return "DateTime"
+  if "date" in col_type:
+    return "Date"
 
+  print("Couldn't match \"{}\"".format(col_type))
   return "???"  # Manual handling will be necessary outside the basic scope
 
 
