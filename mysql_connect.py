@@ -236,7 +236,11 @@ def parse_mysql_schema(table_schema, return_primary_key=False):
 
 
 # Reads the table list file line-by-line and creates a "rough draft" CH schema for each.
-def export_schemas(cnx, db_name="BA_Global"):
+def export_schemas(cnx, db_name="all"):
+  if db_name == "all":
+    export_schemas(cnx, "BA_Global")
+    export_schemas(cnx, "BA_Billing")
+    return
   cursor = cnx.cursor()
 
   # Proper name needed for opening the list of tables
