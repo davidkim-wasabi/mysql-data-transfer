@@ -215,9 +215,9 @@ def parse_mysql_schema(table_schema, return_primary_key=False):
 
     # Check if the column is nullable
     if nullable == "NO":
-      col_string += "Nullable({})".format(convert_mysql_to_clickhouse(col_type))
+      col_string += "Nullable({}),\n".format(convert_mysql_to_clickhouse(col_type))
     else:
-      col_string += convert_mysql_to_clickhouse(col_type)
+      col_string += "{},\n".format(convert_mysql_to_clickhouse(col_type))
 
     # Append it to the result list
     output_list.append(col_string)
@@ -265,7 +265,7 @@ def export_schemas(cnx, db_name="all"):
     mysql_schema = cursor.fetchall()
 
     # Parse the schema to generate ClickHouse format
-    columns = parse_mysql_schema(mysql_schema)
+    columns, order_by = parse_mysql_schema(mysql_schema, True)
 
     # Write the full CH query to its own DB-generation file
     fname = os.path.join("GDB_dbstarter", db_name, "{}.txt".format(tbl))
@@ -276,8 +276,8 @@ def export_schemas(cnx, db_name="all"):
           {}
         )
         ENGINE = ReplacingMergeTree
-        ORDER BY 
-        """.format(db_name, columns))
+        ORDER BY {}
+        """.format(db_name, columns, order_by))
 
 
 # Establishes a connection to a MySQL database with a specified dbname and hostname.
