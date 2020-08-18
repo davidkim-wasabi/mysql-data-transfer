@@ -244,9 +244,9 @@ def export_schemas(cnx, db_name="all"):
   cursor = cnx.cursor()
 
   # Proper name needed for opening the list of tables
-  if "global" in db_name:
+  if "Global" in db_name:
     lst = "global"
-  elif "billing" in db_name:
+  elif "Billing" in db_name:
     lst = "billing"
   else:
     print(
