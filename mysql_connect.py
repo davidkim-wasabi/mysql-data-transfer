@@ -160,6 +160,13 @@ def export_all(cnx):
       upload_to_s3_bucket(fname, bucket="billing-uploads")
 
 
+# Reads the table list file line-by-line and creates a "rough draft" schema for each.
+def export_schemas(db_name="global"):
+  with open("tables_{}.txt".format(db_name), "r") as tbls:
+    tables_list = tbls.readlines()
+  print(tables_list)
+
+
 # Establishes a connection to a MySQL database with a specified dbname and hostname.
 # Operation is the function to execute after connecting. Function must take in a connection.
 def connect_to_db(host="db03.beta1", db="BA_Billing", operation=daily_routine):
@@ -190,4 +197,5 @@ if __name__ == "__main__":
   os.chdir(dname)
 
   # Let the daily shenanigans begin!
-  connect_to_db(operation=export_all)
+  # connect_to_db(operation=export_all)
+  export_schemas("global")

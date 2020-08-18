@@ -30,6 +30,12 @@ def bucket_exists(client, bucket):
   return False
 
 
+# Only deletes the full export contents, nothing else.
+def delete_bucket_contents(client, bucket):
+  # TODO
+  raise Exception("Not implemented")
+
+
 # Uploads the file to s3 and lists the number of objects in the bucket after the
 # operation.
 def upload_to_s3_bucket(file_name, bucket="billing-uploads"):
