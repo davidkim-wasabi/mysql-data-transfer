@@ -103,6 +103,13 @@ def export_all(cnx):
       "AccessKeyData", "PolicyData", "BucketData", "PolicyVersionData", "BucketUtilization"
   ]
 
+  # Add the tables already processed to the list of exclusions
+  try:
+    with open("tables_done.txt", "r") as already_processed:
+      tables_exclude.extend(already_processed.read().splitlines())
+  except:
+    pass
+
   # Write the lists to files to retrieve later
   with open("tables_global.txt", "w") as tables_list:
     for tbl_g, in tables_global:
@@ -120,6 +127,7 @@ def export_all(cnx):
     if not tbl in tables_exclude:
       print("Starting to fetch the contents from \"BA_Global.{}\"...".format(tbl))
       cursor.execute("SELECT * FROM BA_Global.{};".format(tbl))
+
       # Now write the results into a csv
       fname = os.path.join("BA_Global", "{}.csv".format(tbl))
       with open(fname, "w") as fp:
@@ -135,13 +143,20 @@ def export_all(cnx):
           csv_file = csv.writer(fp)
           csv_file.writerows(rows)
       print("Wrote fetched data to \"{}\".".format(fname))
+
+      # Upload it to a s3 bucket
       upload_to_s3_bucket(fname, bucket="global-uploads")
+
+      # Record that the table was uploaded successfully
+      with open("tables_done.txt", "a") as tables_done:
+        tables_done.write("{}\n".format(tbl))
 
   # Do the same with BA_Billing
   for tbl, in tables_billing:
     if not tbl in tables_exclude:
       print("Starting to fetch the contents from \"BA_Billing.{}\"...".format(tbl))
       cursor.execute("SELECT * FROM BA_Billing.{};".format(tbl))
+
       # Now write the results into a csv
       fname = os.path.join("BA_Billing", "{}.csv".format(tbl))
       with open(fname, "w") as fp:
@@ -157,33 +172,108 @@ def export_all(cnx):
           csv_file = csv.writer(fp)
           csv_file.writerows(rows)
       print("Wrote fetched data to \"{}\".".format(fname))
+
+      # Upload it to a s3 bucket
       upload_to_s3_bucket(fname, bucket="billing-uploads")
+
+      # Record that the table was uploaded successfully
+      with open("tables_done.txt", "a") as tables_done:
+        tables_done.write("{}\n".format(tbl))
+
+
+# Helper function to change MySQL column types into ClickHouse types.
+# Not optimized, and chunks all the numeric types to 64 bits.
+def convert_mysql_to_clickhouse(col_type):
+  col_type = col_type.lower()
+  if "bool" in col_type:
+    return "UInt8"
+  if "int" in col_type:
+    if "unsigned" in col_type:
+      return "UInt64"
+    return "Int64"
+  if "float" in col_type or "double" in col_type or "real" in col_type:
+    return "Float64"
+  if "varchar" in col_type:
+    return "String"
+  if "datetime" in col_type:
+    return "DateTime"
+
+  return "???"  # Manual handling will be necessary outside the basic scope
+
+
+# Parses the result of a "DESCRIBE table" MySQL query into a ClickHouse-compatible string.
+def parse_mysql_schema(table_schema, return_primary_key=False):
+  output_list = []  # Temporary list, to be joined into a string later
+  primary_key = ""
+
+  for col in table_schema:
+    # Split the column data into variables we can work with
+    field, col_type, nullable, key, _, _ = col
+
+    # Field always goes first with backticks surrounding it
+    col_string = "`{}` ".format(field)
+
+    # Check if the column is nullable
+    if nullable == "NO":
+      col_string += "Nullable({})".format(convert_mysql_to_clickhouse(col_type))
+    else:
+      col_string += convert_mysql_to_clickhouse(col_type)
+
+    # Append it to the result list
+    output_list.append(col_string)
+
+    # Check whether this column is the primary key
+    if key == "PRI":
+      primary_key = field
+
+  # Now join 'em up
+  out_string = output_list.join()
+
+  # Do we return just the ClickHouse query string, or do we also return the primary key?
+  if return_primary_key:
+    return out_string, primary_key
+  return out_string
 
 
 # Reads the table list file line-by-line and creates a "rough draft" CH schema for each.
-def export_schemas(cnx, db_name="global"):
+def export_schemas(cnx, db_name="BA_Global"):
   cursor = cnx.cursor()
 
+  # Proper name needed for opening the list of tables
+  if "global" in db_name:
+    lst = "global"
+  elif "billing" in db_name:
+    lst = "billing"
+  else:
+    print(
+        "Not BA_Global or BA_Billing, so defaulting to \"tables_{}.txt\" for table info...".format(
+            db_name))
+    lst = db_name
+
   # Get the list of tables
-  with open("tables_{}.txt".format(db_name), "r") as tbls:
+  with open("tables_{}.txt".format(lst), "r") as tbls:
     tables_list = tbls.read().splitlines()
 
   # Iterate through the list and generate the schemas
   for tbl in tables_list:
-    cursor.execute("DESCRIBE BA_{}.{};".format(db_name.capitalize(), tbl))
+    # Describe query from MySQL
+    cursor.execute("DESCRIBE {}.{};".format(db_name, tbl))
     mysql_schema = cursor.fetchall()
-    print(mysql_schema)
 
-    with open("{}.txt".format(tbl), "w") as clickhouse_schema:
+    # Parse the schema to generate ClickHouse format
+    columns = parse_mysql_schema(mysql_schema)
+
+    # Write the full CH query to its own DB-generation file
+    fname = os.path.join("GDB_dbstarter", db_name, "{}.txt".format(tbl))
+    with open(fname, "w") as clickhouse_schema:
       clickhouse_schema.write("""\
-        CREATE TABLE BA_{}
+        CREATE TABLE {}
         (
-
+          {}
         )
         ENGINE = ReplacingMergeTree
         ORDER BY 
-        """.format(db_name.capitalize()))
-    break
+        """.format(db_name, columns))
 
 
 # Establishes a connection to a MySQL database with a specified dbname and hostname.
@@ -217,4 +307,4 @@ if __name__ == "__main__":
 
   # Let the daily shenanigans begin!
   # connect_to_db(operation=export_all)
-  export_schemas("global")
+  connect_to_db(operation=export_schemas)
