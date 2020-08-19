@@ -45,8 +45,9 @@ def download_from_s3_bucket(file_name, object_name=None, bucket="billing-uploads
       print("Successfully downloaded file!")
 
       # Now clean up the bucket, since we no longer need the object
-      client.delete_object(Bucket=bucket, Key=object_name)
-      print("Cleaned up object from bucket.")
+      # client.delete_object(Bucket=bucket, Key=object_name)
+      # print("Cleaned up object from bucket.")
+      print("Not cleaning up, for debugging")
 
     return True
 
@@ -78,10 +79,17 @@ def daily_pull():
   download_from_s3_bucket(fname)
 
 
+# TODO
 def import_all():
-  # TODO
-  download_from_s3_bucket(file_name="", bucket="BA_Billing")
-  download_from_s3_bucket(file_name="", bucket="BA_Global")
+  download_from_s3_bucket(file_name="tables_global", bucket="global-uploads")
+  with open("tables_global.txt", "r") as global_fp:
+    tables_global = global_fp.read().splitlines()
+    print(tables_global)
+
+  download_from_s3_bucket(file_name="tables_billing", bucket="billing-uploads")
+  with open("tables_billing.txt", "r") as billing_fp:
+    tables_billing = billing_fp.read().splitlines()
+    print(tables_billing)
 
 
 # Runs when run as a script

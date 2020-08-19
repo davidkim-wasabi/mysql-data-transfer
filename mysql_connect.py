@@ -103,13 +103,6 @@ def export_all(cnx):
       "AccessKeyData", "PolicyData", "BucketData", "PolicyVersionData", "BucketUtilization"
   ]
 
-  # Add the tables already processed to the list of exclusions
-  try:
-    with open("tables_done.txt", "r") as already_processed:
-      tables_exclude.extend(already_processed.read().splitlines())
-  except:
-    pass
-
   # Write the lists to files to retrieve later
   with open("tables_global.txt", "w") as tables_list:
     for tbl_g, in tables_global:
@@ -121,6 +114,13 @@ def export_all(cnx):
       if not tbl_b in tables_exclude:
         tables_list.write("{}\n".format(tbl_b))
     upload_to_s3_bucket("tables_billing.txt", bucket="billing-uploads")
+
+  # Add the tables already processed to the list of exclusions
+  try:
+    with open("tables_done.txt", "r") as already_processed:
+      tables_exclude.extend(already_processed.read().splitlines())
+  except:
+    pass
 
   # Go through the BA_Global list and select everything into a big dump
   for tbl, in tables_global:
