@@ -81,12 +81,12 @@ def daily_pull():
 
 # TODO
 def import_all():
-  download_from_s3_bucket(file_name="tables_global", bucket="global-uploads")
+  download_from_s3_bucket(file_name="tables_global.txt", bucket="global-uploads")
   with open("tables_global.txt", "r") as global_fp:
     tables_global = global_fp.read().splitlines()
     print(tables_global)
 
-  download_from_s3_bucket(file_name="tables_billing", bucket="billing-uploads")
+  download_from_s3_bucket(file_name="tables_billing.txt", bucket="billing-uploads")
   with open("tables_billing.txt", "r") as billing_fp:
     tables_billing = billing_fp.read().splitlines()
     print(tables_billing)
