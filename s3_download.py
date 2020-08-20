@@ -81,20 +81,28 @@ def daily_pull():
 
 # Imports all the CSV files from s3
 def import_all(from_s3=False):
+  # Download the list of files if not already provided
   if from_s3:
     print("Downloading the lists of tables from s3...")
     download_from_s3_bucket(file_name="tables_global.txt", bucket="global-uploads")
     download_from_s3_bucket(file_name="tables_billing.txt", bucket="billing-uploads")
 
+  # Open the files for lists of tables
   with open("tables_global.txt", "r") as global_fp:
     tables_global = global_fp.read().splitlines()
   with open("tables_billing.txt", "r") as billing_fp:
     tables_billing = billing_fp.read().splitlines()
 
+  # Download the corresponding CSV data for BA_Global tables
   for tbl_g in tables_global:
     download_from_s3_bucket(file_name="{}.csv".format(tbl_g), bucket="global-uploads")
+    # Our directory is cluttered, let's clean up
+    os.rename("{}.csv".format(tbl_g), os.path.join("BA_Global", "{}.csv".format(tbl_g)))
+
+  # Do the same with BA_Billing tables
   for tbl_b in tables_billing:
     download_from_s3_bucket(file_name="{}.csv".format(tbl_b), bucket="billing-uploads")
+    os.rename("{}.csv".format(tbl_b), os.path.join("BA_Billing", "{}.csv".format(tbl_b)))
 
 
 # Runs when run as a script
