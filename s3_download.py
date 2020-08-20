@@ -79,17 +79,22 @@ def daily_pull():
   download_from_s3_bucket(fname)
 
 
-# TODO
-def import_all():
-  download_from_s3_bucket(file_name="tables_global.txt", bucket="global-uploads")
+# Imports all the CSV files from s3
+def import_all(from_s3=False):
+  if from_s3:
+    print("Downloading the lists of tables from s3...")
+    download_from_s3_bucket(file_name="tables_global.txt", bucket="global-uploads")
+    download_from_s3_bucket(file_name="tables_billing.txt", bucket="billing-uploads")
+
   with open("tables_global.txt", "r") as global_fp:
     tables_global = global_fp.read().splitlines()
-    print(tables_global)
-
-  download_from_s3_bucket(file_name="tables_billing.txt", bucket="billing-uploads")
   with open("tables_billing.txt", "r") as billing_fp:
     tables_billing = billing_fp.read().splitlines()
-    print(tables_billing)
+
+  for tbl_g in tables_global:
+    download_from_s3_bucket(file_name="{}.csv".format(tbl_g), bucket="global-uploads")
+  for tbl_b in tables_billing:
+    download_from_s3_bucket(file_name="{}.csv".format(tbl_b), bucket="billing-uploads")
 
 
 # Runs when run as a script
