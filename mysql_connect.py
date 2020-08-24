@@ -90,7 +90,7 @@ def daily_routine(cnx):
 
 
 # Export all the tables from BA_Billing and BA_Global from MySQL into CSV.
-def export_all(cnx, start_from_scratch=True):
+def export_all(cnx, start_from_scratch=False):
   cursor = cnx.cursor()
 
   # First, get the list of tables from the desired databases
@@ -172,7 +172,7 @@ def export_all(cnx, start_from_scratch=True):
       # Get the latest autoinc value
       cursor.execute("SELECT AUTO_INCREMENT FROM INFORMATION_SCHEMA.TABLES \
         WHERE TABLE_SCHEMA = 'BA_Global' AND TABLE_NAME = '{}';".format(tbl))
-      next_auto_inc = cursor.fetchall()[0]
+      next_auto_inc = cursor.fetchall()[0][0]
 
       # Save the value for next time
       with open(os.path.join("BA_Global", "{}-lastAI.txt".format(tbl)), "w") as auto_inc_log:
@@ -230,7 +230,7 @@ def export_all(cnx, start_from_scratch=True):
       # Get the latest autoinc value
       cursor.execute("SELECT AUTO_INCREMENT FROM INFORMATION_SCHEMA.TABLES \
         WHERE TABLE_SCHEMA = 'BA_Billing' AND TABLE_NAME = '{}';".format(tbl))
-      next_auto_inc = cursor.fetchall()[0]
+      next_auto_inc = cursor.fetchall()[0][0]
 
       # Save the value for next time
       with open(os.path.join("BA_Billing", "{}-lastAI.txt".format(tbl)), "w") as auto_inc_log:
@@ -379,5 +379,5 @@ if __name__ == "__main__":
   os.chdir(dname)
 
   # Let the daily shenanigans begin!
-  # connect_to_db(operation=export_all)
-  connect_to_db(operation=export_schemas)
+  connect_to_db(operation=export_all)
+  # connect_to_db(operation=export_schemas)
