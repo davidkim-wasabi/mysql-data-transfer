@@ -60,9 +60,9 @@ def fetch_daily_bucket_utils(cnx):
 
 
 # The daily routine of this script:
-# 1) Check the elapsed time since last update to the BucketUtilization table.
+# 1) Check the elapsed time since last update to the BucketUtilization table. NOT DOING ANYMORE
 # 2) If 10 minutes or less have passed, that means there was a recent change that must be
-# pulled, since the cron job for this script is scheduled for every 10 minutes.
+# pulled, since the cron job for this script is scheduled for every 10 minutes. N/A ANYMORE
 # 3) Fetch the latest records (from EndTime = today) and export them to CSV.
 # 4) Log what happened to a text file.
 def daily_routine(cnx):
@@ -89,7 +89,8 @@ def daily_routine(cnx):
       cron_log.write("[{}] Ran script and did not fetch data.\n".format(now))
 
 
-def export_all(cnx):
+# Export all the tables from BA_Billing and BA_Global from MySQL into CSV.
+def export_all(cnx, start_from_scratch=True):
   cursor = cnx.cursor()
 
   # First, get the list of tables from the desired databases
@@ -125,8 +126,28 @@ def export_all(cnx):
   # Go through the BA_Global list and select everything into a big dump
   for tbl, in tables_global:
     if not tbl in tables_exclude:
+      # Look up autoinc column
+      cursor.execute(
+          "SHOW COLUMNS FROM BA_Global.{} WHERE Extra LIKE '%auto_increment%';".format(tbl))
+      auto_inc_col = cursor.fetchall()[0][0]
+      print(auto_inc_col)
+
+      # Fetch from the very beginning for a clean export, or pick up from where it left off last
       print("Starting to fetch the contents from \"BA_Global.{}\"...".format(tbl))
-      cursor.execute("SELECT * FROM BA_Global.{};".format(tbl))
+      if start_from_scratch:
+        print("Fetching from scratch.")
+        cursor.execute("SELECT * FROM BA_Global.{};".format(tbl))
+      else:
+        # Get last written autoinc value from file
+        try:
+          with open("{}-lastAI.txt".format(tbl), "r") as auto_inc_log:
+            last_auto_inc = int(auto_inc_log.read())
+        except:
+          last_auto_inc = 0
+
+        print("Picking up from last autoincrement value of {}.".format(last_auto_inc))
+        cursor.execute("SELECT * FROM BA_Global.{} WHERE {} >= {};".format(
+            tbl, auto_inc_col, last_auto_inc))
 
       # Now write the results into a csv
       fname = os.path.join("BA_Global", "{}.csv".format(tbl))
@@ -146,6 +167,14 @@ def export_all(cnx):
 
       # Upload it to a s3 bucket
       upload_to_s3_bucket(fname, bucket="global-uploads")
+
+      # Get the latest autoinc value
+      cursor.execute("SELECT AUTO_INCREMENT FROM INFORMATION_SCHEMA.TABLES \
+        WHERE TABLE_SCHEMA = 'BA_Global' AND TABLE_NAME = '{}';".format(tbl))
+      next_auto_inc = cursor.fetchall()[0]
+
+      with open("{}-lastAI.txt".format(tbl), "w") as auto_inc_log:
+        auto_inc_log.write(next_auto_inc)
 
       # Record that the table was uploaded successfully
       with open("tables_done.txt", "a") as tables_done:
@@ -208,16 +237,17 @@ def convert_mysql_to_clickhouse(col_type):
 def parse_mysql_schema(table_schema, return_primary_key=False):
   output_list = []  # Temporary list, to be joined into a string later
   primary_key = ""
+  auto_inc = ""
 
   for col in table_schema:
     # Split the column data into variables we can work with
-    field, col_type, nullable, key, _, _ = col
+    field, col_type, nullable, key, _, extra = col
 
     # Field always goes first with backticks surrounding it
     col_string = "`{}` ".format(field)
 
     # Check if the column is nullable
-    if nullable == "NO":
+    if nullable == "YES":
       col_string += "Nullable({}),\n  ".format(convert_mysql_to_clickhouse(col_type))
     else:
       col_string += "{},\n  ".format(convert_mysql_to_clickhouse(col_type))
@@ -229,13 +259,17 @@ def parse_mysql_schema(table_schema, return_primary_key=False):
     if key == "PRI":
       primary_key = field
 
+    # And check if this is the autoinc column (useful for daily updates)
+    if extra == "auto_increment":
+      auto_inc = field
+
   # Now join 'em up
   out_string = "".join(output_list)
-  out_string = out_string[:-4]
+  out_string = out_string[:-4]  # We don't need the last comma and new line
 
-  # Do we return just the ClickHouse query string, or do we also return the primary key?
+  # Do we return just the ClickHouse query string, or do we also return the primary key & autoinc?
   if return_primary_key:
-    return out_string, primary_key
+    return out_string, primary_key, auto_inc
   return out_string
 
 
@@ -269,7 +303,7 @@ def export_schemas(cnx, db_name="all"):
     mysql_schema = cursor.fetchall()
 
     # Parse the schema to generate ClickHouse format
-    columns, order_by = parse_mysql_schema(mysql_schema, True)
+    columns, order_by, _ = parse_mysql_schema(mysql_schema, True)
 
     # Write the full CH query to its own DB-generation file
     fname = os.path.join("GDB_dbstarter", db_name, "{}.txt".format(tbl))

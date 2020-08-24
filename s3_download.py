@@ -26,7 +26,10 @@ def download_gzipped(client, bucket, key, fp, compressed_fp=None):
 # Downloads the file with the specified file name from s3.
 # Returns True if the download is successful, and False if the file was not found.
 # Raises an exception otherwise.
-def download_from_s3_bucket(file_name, object_name=None, bucket="billing-uploads"):
+def download_from_s3_bucket(file_name,
+                            object_name=None,
+                            bucket="billing-uploads",
+                            delete_after=True):
   # Create s3 session & client
   session = boto3.session.Session()
   client = session.client(service_name="s3",
@@ -44,10 +47,12 @@ def download_from_s3_bucket(file_name, object_name=None, bucket="billing-uploads
       download_gzipped(client, bucket, object_name, fp)
       print("Successfully downloaded file!")
 
-      # Now clean up the bucket, since we no longer need the object
-      # client.delete_object(Bucket=bucket, Key=object_name)
-      # print("Cleaned up object from bucket.")
-      print("Not cleaning up, for debugging")
+      if delete_after:
+        # Now clean up the bucket, since we no longer need the object
+        client.delete_object(Bucket=bucket, Key=object_name)
+        print("Cleaned up object from bucket.")
+      else:
+        print("Not cleaning up, for debugging")
 
     return True
 
@@ -64,7 +69,7 @@ def download_from_s3_bucket(file_name, object_name=None, bucket="billing-uploads
     raise
 
 
-# Function to be run for the daily fetch operation
+# Function to be run for the daily fetch operation of the BucketUtilization table
 def daily_pull():
   today = date.today()
   today = today.strftime("%Y-%m-%d")
@@ -84,8 +89,12 @@ def import_all(from_s3=False):
   # Download the list of files if not already provided
   if from_s3:
     print("Downloading the lists of tables from s3...")
-    download_from_s3_bucket(file_name="tables_global.txt", bucket="global-uploads")
-    download_from_s3_bucket(file_name="tables_billing.txt", bucket="billing-uploads")
+    download_from_s3_bucket(file_name="tables_global.txt",
+                            bucket="global-uploads",
+                            delete_after=False)
+    download_from_s3_bucket(file_name="tables_billing.txt",
+                            bucket="billing-uploads",
+                            delete_after=False)
 
   # Open the files for lists of tables
   with open("tables_global.txt", "r") as global_fp:
@@ -95,13 +104,17 @@ def import_all(from_s3=False):
 
   # Download the corresponding CSV data for BA_Global tables
   for tbl_g in tables_global:
-    download_from_s3_bucket(file_name="{}.csv".format(tbl_g), bucket="global-uploads")
+    download_from_s3_bucket(file_name="{}.csv".format(tbl_g),
+                            bucket="global-uploads",
+                            delete_after=True)
     # Our directory is cluttered, let's clean up
     os.rename("{}.csv".format(tbl_g), os.path.join("BA_Global", "{}.csv".format(tbl_g)))
 
   # Do the same with BA_Billing tables
   for tbl_b in tables_billing:
-    download_from_s3_bucket(file_name="{}.csv".format(tbl_b), bucket="billing-uploads")
+    download_from_s3_bucket(file_name="{}.csv".format(tbl_b),
+                            bucket="billing-uploads",
+                            delete_after=True)
     os.rename("{}.csv".format(tbl_b), os.path.join("BA_Billing", "{}.csv".format(tbl_b)))
 
 
