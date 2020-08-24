@@ -130,7 +130,6 @@ def export_all(cnx, start_from_scratch=False):
       cursor.execute(
           "SHOW COLUMNS FROM BA_Global.{} WHERE Extra LIKE '%auto_increment%';".format(tbl))
       auto_inc_col = cursor.fetchall()[0][0]
-      print(auto_inc_col)
 
       # Fetch from the very beginning for a clean export, or pick up from where it left off last
       print("Starting to fetch the contents from \"BA_Global.{}\"...".format(tbl))
