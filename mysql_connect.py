@@ -140,9 +140,10 @@ def export_all(cnx, start_from_scratch=True):
       else:
         # Get last written autoinc value from file
         try:
-          with open("{}-lastAI.txt".format(tbl), "r") as auto_inc_log:
+          with open(os.path.join("BA_Global", "{}-lastAI.txt".format(tbl)), "r") as auto_inc_log:
             last_auto_inc = int(auto_inc_log.read())
         except:
+          print("Auto increment file not found in \"BA_Global\"; defaulting to zero.")
           last_auto_inc = 0
 
         print("Picking up from last autoincrement value of {}.".format(last_auto_inc))
@@ -173,7 +174,8 @@ def export_all(cnx, start_from_scratch=True):
         WHERE TABLE_SCHEMA = 'BA_Global' AND TABLE_NAME = '{}';".format(tbl))
       next_auto_inc = cursor.fetchall()[0]
 
-      with open("{}-lastAI.txt".format(tbl), "w") as auto_inc_log:
+      # Save the value for next time
+      with open(os.path.join("BA_Global", "{}-lastAI.txt".format(tbl)), "w") as auto_inc_log:
         auto_inc_log.write(next_auto_inc)
 
       # Record that the table was uploaded successfully
@@ -183,8 +185,28 @@ def export_all(cnx, start_from_scratch=True):
   # Do the same with BA_Billing
   for tbl, in tables_billing:
     if not tbl in tables_exclude:
+      # Look up autoinc column
+      cursor.execute(
+          "SHOW COLUMNS FROM BA_Billing.{} WHERE Extra LIKE '%auto_increment%';".format(tbl))
+      auto_inc_col = cursor.fetchall()[0][0]
+
+      # Fetch from the very beginning for a clean export, or pick up from where it left off last
       print("Starting to fetch the contents from \"BA_Billing.{}\"...".format(tbl))
-      cursor.execute("SELECT * FROM BA_Billing.{};".format(tbl))
+      if start_from_scratch:
+        print("Fetching from scratch.")
+        cursor.execute("SELECT * FROM BA_Billing.{};".format(tbl))
+      else:
+        # Get last written autoinc value from file
+        try:
+          with open(os.path.join("BA_Billing", "{}-lastAI.txt".format(tbl)), "r") as auto_inc_log:
+            last_auto_inc = int(auto_inc_log.read())
+        except:
+          print("Auto increment file not found in \"BA_Billing\"; defaulting to zero.")
+          last_auto_inc = 0
+
+        print("Picking up from last autoincrement value of {}.".format(last_auto_inc))
+        cursor.execute("SELECT * FROM BA_Billing.{} WHERE {} >= {};".format(
+            tbl, auto_inc_col, last_auto_inc))
 
       # Now write the results into a csv
       fname = os.path.join("BA_Billing", "{}.csv".format(tbl))
@@ -204,6 +226,15 @@ def export_all(cnx, start_from_scratch=True):
 
       # Upload it to a s3 bucket
       upload_to_s3_bucket(fname, bucket="billing-uploads")
+
+      # Get the latest autoinc value
+      cursor.execute("SELECT AUTO_INCREMENT FROM INFORMATION_SCHEMA.TABLES \
+        WHERE TABLE_SCHEMA = 'BA_Billing' AND TABLE_NAME = '{}';".format(tbl))
+      next_auto_inc = cursor.fetchall()[0]
+
+      # Save the value for next time
+      with open(os.path.join("BA_Billing", "{}-lastAI.txt".format(tbl)), "w") as auto_inc_log:
+        auto_inc_log.write(next_auto_inc)
 
       # Record that the table was uploaded successfully
       with open("tables_done.txt", "a") as tables_done:
