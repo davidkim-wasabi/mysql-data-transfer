@@ -126,6 +126,8 @@ def export_all(cnx, start_from_scratch=False):
   # Go through the BA_Global list and select everything into a big dump
   for tbl, in tables_global:
     if not tbl in tables_exclude:
+      print("\n> Starting to fetch the contents from \"BA_Global.{}\"...".format(tbl))
+
       # Look up autoinc column
       cursor.execute(
           "SHOW COLUMNS FROM BA_Global.{} WHERE Extra LIKE '%auto_increment%';".format(tbl))
@@ -138,7 +140,6 @@ def export_all(cnx, start_from_scratch=False):
         no_auto_inc = True
 
       # Fetch from the very beginning for a clean export, or pick up from where it left off last
-      print("Starting to fetch the contents from \"BA_Global.{}\"...".format(tbl))
       if start_from_scratch or no_auto_inc:
         print("Fetching from scratch.")
         cursor.execute("SELECT * FROM BA_Global.{};".format(tbl))
@@ -191,6 +192,8 @@ def export_all(cnx, start_from_scratch=False):
   # Do the same with BA_Billing
   for tbl, in tables_billing:
     if not tbl in tables_exclude:
+      print("\n> Starting to fetch the contents from \"BA_Billing.{}\"...".format(tbl))
+
       # Look up autoinc column
       cursor.execute(
           "SHOW COLUMNS FROM BA_Billing.{} WHERE Extra LIKE '%auto_increment%';".format(tbl))
@@ -203,7 +206,6 @@ def export_all(cnx, start_from_scratch=False):
         no_auto_inc = True
 
       # Fetch from the very beginning for a clean export, or pick up from where it left off last
-      print("Starting to fetch the contents from \"BA_Billing.{}\"...".format(tbl))
       if start_from_scratch or no_auto_inc:
         print("Fetching from scratch.")
         cursor.execute("SELECT * FROM BA_Billing.{};".format(tbl))
