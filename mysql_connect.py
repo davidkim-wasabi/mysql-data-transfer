@@ -91,6 +91,7 @@ def daily_routine(cnx):
 
 # Export all the tables from BA_Billing and BA_Global from MySQL into CSV.
 def export_all(cnx, start_from_scratch=False):
+  now = datetime.now().replace(microsecond=0)  # For logging purposes
   cursor = cnx.cursor()
 
   # First, get the list of tables from the desired databases
@@ -139,9 +140,16 @@ def export_all(cnx, start_from_scratch=False):
         auto_inc_col = None
         no_auto_inc = True
 
+      # Get the latest autoinc value
+      if not no_auto_inc:
+        cursor.execute("SELECT AUTO_INCREMENT FROM INFORMATION_SCHEMA.TABLES \
+          WHERE TABLE_SCHEMA = 'BA_Global' AND TABLE_NAME = '{}';".format(tbl))
+        next_auto_inc = str(cursor.fetchall()[0][0])
+
       # Fetch from the very beginning for a clean export, or pick up from where it left off last
       if start_from_scratch or no_auto_inc:
-        print("Fetching from scratch.")
+        now = datetime.now().replace(microsecond=0)
+        print("[{}] Fetching from scratch.".format(now))
         cursor.execute("SELECT * FROM BA_Global.{};".format(tbl))
       else:
         # Get last written autoinc value from file
@@ -152,9 +160,11 @@ def export_all(cnx, start_from_scratch=False):
           print("Auto increment file not found in \"BA_Global\"; defaulting to zero.")
           last_auto_inc = 0
 
-        print("Picking up from last autoincrement value of {}.".format(last_auto_inc))
-        cursor.execute("SELECT * FROM BA_Global.{} WHERE {} >= {};".format(
-            tbl, auto_inc_col, last_auto_inc))
+        now = datetime.now().replace(microsecond=0)
+        print("[{}] Picking up autoinc values between {} and {}.".format(
+            now, last_auto_inc, next_auto_inc))
+        cursor.execute("SELECT * FROM BA_Global.{} WHERE {} >= {} AND {} < {};".format(
+            tbl, auto_inc_col, last_auto_inc, auto_inc_col, next_auto_inc))
 
       # Now write the results into a csv
       fname = os.path.join("BA_Global", "{}.csv".format(tbl))
@@ -167,21 +177,16 @@ def export_all(cnx, start_from_scratch=False):
         rows = cursor.fetchmany(1000)
         if not rows:
           break
-        with open(fname, "a") as fp:
+        with open(fname, "a", encoding="utf-8") as fp:
           csv_file = csv.writer(fp)
           csv_file.writerows(rows)
-      print("Wrote fetched data to \"{}\".".format(fname))
+      print("[{}] Wrote fetched data to \"{}\".".format(now, fname))
 
       # Upload it to a s3 bucket
       upload_to_s3_bucket(fname, bucket="global-uploads")
 
+      # Save the value for next time
       if not no_auto_inc:
-        # Get the latest autoinc value
-        cursor.execute("SELECT AUTO_INCREMENT FROM INFORMATION_SCHEMA.TABLES \
-          WHERE TABLE_SCHEMA = 'BA_Global' AND TABLE_NAME = '{}';".format(tbl))
-        next_auto_inc = str(cursor.fetchall()[0][0])
-
-        # Save the value for next time
         with open(os.path.join("BA_Global", "{}-lastAI.txt".format(tbl)), "w") as auto_inc_log:
           auto_inc_log.write(next_auto_inc)
 
@@ -205,9 +210,16 @@ def export_all(cnx, start_from_scratch=False):
         auto_inc_col = None
         no_auto_inc = True
 
+      # Get the latest autoinc value
+      if not no_auto_inc:
+        cursor.execute("SELECT AUTO_INCREMENT FROM INFORMATION_SCHEMA.TABLES \
+          WHERE TABLE_SCHEMA = 'BA_Billing' AND TABLE_NAME = '{}';".format(tbl))
+        next_auto_inc = str(cursor.fetchall()[0][0])
+
       # Fetch from the very beginning for a clean export, or pick up from where it left off last
       if start_from_scratch or no_auto_inc:
-        print("Fetching from scratch.")
+        now = datetime.now().replace(microsecond=0)
+        print("[{}] Fetching from scratch.".format(now))
         cursor.execute("SELECT * FROM BA_Billing.{};".format(tbl))
       else:
         # Get last written autoinc value from file
@@ -218,9 +230,11 @@ def export_all(cnx, start_from_scratch=False):
           print("Auto increment file not found in \"BA_Billing\"; defaulting to zero.")
           last_auto_inc = 0
 
-        print("Picking up from last autoincrement value of {}.".format(last_auto_inc))
-        cursor.execute("SELECT * FROM BA_Billing.{} WHERE {} >= {};".format(
-            tbl, auto_inc_col, last_auto_inc))
+        now = datetime.now().replace(microsecond=0)
+        print("[{}] Picking up autoinc values between {} and {}.".format(
+            now, last_auto_inc, next_auto_inc))
+        cursor.execute("SELECT * FROM BA_Billing.{} WHERE {} >= {} AND {} < {};".format(
+            tbl, auto_inc_col, last_auto_inc, auto_inc_col, next_auto_inc))
 
       # Now write the results into a csv
       fname = os.path.join("BA_Billing", "{}.csv".format(tbl))
@@ -233,21 +247,18 @@ def export_all(cnx, start_from_scratch=False):
         rows = cursor.fetchmany(1000)
         if not rows:
           break
-        with open(fname, "a") as fp:
+        with open(fname, "a", encoding="utf-8") as fp:
           csv_file = csv.writer(fp)
           csv_file.writerows(rows)
-      print("Wrote fetched data to \"{}\".".format(fname))
+
+      now = datetime.now().replace(microsecond=0)
+      print("[{}] Wrote fetched data to \"{}\".".format(now, fname))
 
       # Upload it to a s3 bucket
       upload_to_s3_bucket(fname, bucket="billing-uploads")
 
+      # Save the value for next time
       if not no_auto_inc:
-        # Get the latest autoinc value
-        cursor.execute("SELECT AUTO_INCREMENT FROM INFORMATION_SCHEMA.TABLES \
-          WHERE TABLE_SCHEMA = 'BA_Billing' AND TABLE_NAME = '{}';".format(tbl))
-        next_auto_inc = str(cursor.fetchall()[0][0])
-
-        # Save the value for next time
         with open(os.path.join("BA_Billing", "{}-lastAI.txt".format(tbl)), "w") as auto_inc_log:
           auto_inc_log.write(next_auto_inc)
 
@@ -383,7 +394,8 @@ def connect_to_db(host="db03.beta1", db="BA_Billing", operation=daily_routine):
     print("Closed connection to database.")
 
   except mysqlc.Error as err:
-    print(err)
+    now = datetime.now().replace(microsecond=0)
+    print("[{}] {}".format(now, err))
 
 
 # Runs when the code is run as a script.
