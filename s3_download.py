@@ -106,7 +106,7 @@ def import_all(from_s3=False):
   for tbl_g in tables_global:
     download_from_s3_bucket(file_name="{}.csv".format(tbl_g),
                             bucket="global-uploads",
-                            delete_after=True)
+                            delete_after=False)
     # Our directory is cluttered, let's clean up
     os.rename("{}.csv".format(tbl_g), os.path.join("BA_Global", "{}.csv".format(tbl_g)))
 
@@ -114,7 +114,7 @@ def import_all(from_s3=False):
   for tbl_b in tables_billing:
     download_from_s3_bucket(file_name="{}.csv".format(tbl_b),
                             bucket="billing-uploads",
-                            delete_after=True)
+                            delete_after=False)
     os.rename("{}.csv".format(tbl_b), os.path.join("BA_Billing", "{}.csv".format(tbl_b)))
 
 

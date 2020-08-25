@@ -397,6 +397,10 @@ def connect_to_db(host="db03.beta1", db="BA_Billing", operation=daily_routine):
     now = datetime.now().replace(microsecond=0)
     print("[{}] {}".format(now, err))
 
+    # Recursively try again if it fails due to a MySQL timeout error
+    if "2013 (HY000)" in str(err):
+      connect_to_db(operation=operation)
+
 
 # Runs when the code is run as a script.
 if __name__ == "__main__":
