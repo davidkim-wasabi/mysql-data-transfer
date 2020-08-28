@@ -35,6 +35,7 @@ It has three main uses atm:
 - `--export-schemas`: Export the schemas of the GDB tables into a ClickHouse-friendly format.
   - `--db {dbname}`: Specify the database name to fetch only BA_Billing or BA_Global (or other databases).
 - `--export-BucketUtilization`: Export BA_Billing.BucketUtilization to CSV. This is separate because it was done before the other two functionalities were implemented. 
+
 One more flag to note: `--host {hostname}` allows for setting the host. Default is db01.ashburn.
 
 The other two scripts, `s3_download.py` and `s3_upload.py`, are much simpler. They have a single purpose: download gzipped files from the s3 bucket or upload files after gzipping them to the s3 bucket. The code is relatively simple compared to `mysql_connect.py` so feel free to change it to your liking.
