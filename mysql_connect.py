@@ -5,6 +5,7 @@ import sys
 import csv
 import os
 from s3_upload import upload_to_s3_bucket
+import argparse
 
 debugging = False
 
@@ -90,7 +91,7 @@ def daily_routine(cnx):
 
 
 # Export all the tables from BA_Billing and BA_Global from MySQL into CSV.
-def export_all(cnx, start_from_scratch=False):
+def export_all(cnx, start_from_scratch=False, ignore_tables_done=False):
   now = datetime.now().replace(microsecond=0)  # For logging purposes
   cursor = cnx.cursor()
 
@@ -118,11 +119,12 @@ def export_all(cnx, start_from_scratch=False):
     upload_to_s3_bucket("tables_billing.txt", bucket="billing-uploads")
 
   # Add the tables already processed to the list of exclusions
-  try:
-    with open("tables_done.txt", "r") as already_processed:
-      tables_exclude.extend(already_processed.read().splitlines())
-  except:
-    pass
+  if not ignore_tables_done:
+    try:
+      with open("tables_done.txt", "r") as already_processed:
+        tables_exclude.extend(already_processed.read().splitlines())
+    except:
+      pass
 
   # Go through the BA_Global list and select everything into a big dump
   for tbl, in tables_global:
@@ -377,7 +379,7 @@ ORDER BY {}
 
 # Establishes a connection to a MySQL database with a specified dbname and hostname.
 # Operation is the function to execute after connecting. Function must take in a connection.
-def connect_to_db(host="db03.beta1", db="BA_Billing", operation=daily_routine):
+def connect_to_db(host="db03.beta1", db="BA_Billing", operation=daily_routine, **kwargs):
   print("Connecting to {} for database \"{}\"...".format(host, db))
 
   # Config used to access db.
@@ -388,7 +390,7 @@ def connect_to_db(host="db03.beta1", db="BA_Billing", operation=daily_routine):
     print("Connection established.")
 
     # Higher order function -> "operation" can be any function with mandatory arg "connection"
-    operation(connection)
+    operation(connection, **kwargs)
 
     connection.close()
     print("Closed connection to database.")
@@ -399,7 +401,8 @@ def connect_to_db(host="db03.beta1", db="BA_Billing", operation=daily_routine):
 
     # Recursively try again if it fails due to a MySQL timeout error
     if "2013 (HY000)" in str(err):
-      connect_to_db(operation=operation)
+      print("Detected MySQL connection timeout error. Trying again...")
+      connect_to_db(host=host, db=db, operation=operation, **kwargs)
 
 
 # Runs when the code is run as a script.
@@ -409,6 +412,52 @@ if __name__ == "__main__":
   dname = os.path.dirname(abspath)
   os.chdir(dname)
 
-  # Let the daily shenanigans begin!
-  connect_to_db(operation=export_all)
-  # connect_to_db(operation=export_schemas)
+  # Begin parsing the user input from the command line
+  parser = argparse.ArgumentParser(description="Various related functions to MySQL exports.")
+  parser.add_argument("--host", type=str, default="db03.beta1", help="The DB hostname")
+
+  # Export the GDB tables into CSV format
+  parser.add_argument("--export-gdb",
+                      action="store_true",
+                      help="Export GDB tables from MySQL into CSV format")
+  parser.add_argument("--start-over",
+                      action="store_true",
+                      help="If --export-gdb is set, this determines whether to fetch everything \
+        or pick up from where it last left off")
+  parser.add_argument("-f",
+                      "--force",
+                      action="store_true",
+                      help="If --export-gdb is set, setting this will ignore tables_done.txt \
+                      when starting the export")
+
+  # Export the table schemas of the specified database into a ClickHouse-friendly format
+  parser.add_argument("--export-schemas",
+                      action="store_true",
+                      help="Export GDB tables' schemas into ClickHouse-friendly format. \
+        If --db is not specified, then the default behavior is BA_Global & BA_Billing")
+  parser.add_argument("--db",
+                      type=str,
+                      default="all",
+                      help="If --export-schemas is set, the DB from which the export is done")
+
+  # Export BA_Billing.BucketUtilization as part of the daily updates
+  parser.add_argument("--export-BucketUtilization",
+                      action="store_true",
+                      help="Export BA_Billing.BucketUtilization from MySQL into CSV")
+
+  # Put 'em all into "args" for usage
+  args = parser.parse_args()
+
+  # Now, check what we actually want to do, based on the arguments passed
+  if args.export_gdb:
+    connect_to_db(host=args.host,
+                  operation=export_all,
+                  start_from_scratch=args.start_over,
+                  ignore_tables_done=args.force)
+  elif args.export_schemas:
+    connect_to_db(host=args.host, operation=export_schemas, db_name=args.db)
+  elif args.export_BucketUtilization:
+    connect_to_db(host=args.host, operation=daily_routine)
+  else:
+    print("You didn't specify any arguments with the script. "
+          "Run with --help or -h for available options.")
