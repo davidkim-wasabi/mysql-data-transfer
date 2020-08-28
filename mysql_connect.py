@@ -379,7 +379,7 @@ ORDER BY {}
 
 # Establishes a connection to a MySQL database with a specified dbname and hostname.
 # Operation is the function to execute after connecting. Function must take in a connection.
-def connect_to_db(host="db03.beta1", db="BA_Billing", operation=daily_routine, **kwargs):
+def connect_to_db(host, db="BA_Billing", operation=daily_routine, **kwargs):
   print("Connecting to {} for database \"{}\"...".format(host, db))
 
   # Config used to access db.
@@ -414,7 +414,10 @@ if __name__ == "__main__":
 
   # Begin parsing the user input from the command line
   parser = argparse.ArgumentParser(description="Various related functions to MySQL exports.")
-  parser.add_argument("--host", type=str, default="db03.beta1", help="The DB hostname")
+  parser.add_argument("--host",
+                      type=str,
+                      default="db01.ashburn",
+                      help="The DB hostname, default db01.ashburn")
 
   # Export the GDB tables into CSV format
   parser.add_argument("--export-gdb",
