@@ -104,18 +104,26 @@ def import_all(from_s3=False):
 
   # Download the corresponding CSV data for BA_Global tables
   for tbl_g in tables_global:
-    download_from_s3_bucket(file_name="{}.csv".format(tbl_g),
-                            bucket="global-uploads",
-                            delete_after=False)
-    # Our directory is cluttered, let's clean up
-    os.rename("{}.csv".format(tbl_g), os.path.join("BA_Global", "{}.csv".format(tbl_g)))
+    try:
+      download_from_s3_bucket(file_name="{}.csv".format(tbl_g),
+                              bucket="global-uploads",
+                              delete_after=False)
+      # Our directory is cluttered, let's clean up
+      os.rename("{}.csv".format(tbl_g), os.path.join("BA_Global", "{}.csv".format(tbl_g)))
+    except:
+      e = sys.exc_info()[0]
+      print(e)  # Keep going after
 
   # Do the same with BA_Billing tables
   for tbl_b in tables_billing:
-    download_from_s3_bucket(file_name="{}.csv".format(tbl_b),
-                            bucket="billing-uploads",
-                            delete_after=False)
-    os.rename("{}.csv".format(tbl_b), os.path.join("BA_Billing", "{}.csv".format(tbl_b)))
+    try:
+      download_from_s3_bucket(file_name="{}.csv".format(tbl_b),
+                              bucket="billing-uploads",
+                              delete_after=False)
+      os.rename("{}.csv".format(tbl_b), os.path.join("BA_Billing", "{}.csv".format(tbl_b)))
+    except:
+      e = sys.exc_info()[0]
+      print(e)
 
 
 # Runs when run as a script
