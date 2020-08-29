@@ -26,6 +26,11 @@ In other words, it should look like this:
 
 Also, certain python modules will need to be installed. They are all listed at the top of each .py script. These are mostly libraries for s3 and MySQL.
 
+### Explanation
+The folders in the root directory `BA_Global` and `BA_Billing` are where the exported CSV data go. It is also where the `s3_upload.py` script looks to upload them to s3.
+
+The same-name folders *inside* `GDB_dbstarter` contain `CREATE TABLE` queries for ClickHouse, stored in .txt format. These are used to generate the GDB tables in ClickHouse, and were automatically generated with `mysql_connect.py`'s `--export-schemas` functionality.
+
 ## Usage
 `mysql_connect.py` is an all-purpose script that handles anything related to the MySQL database. Run the script with `-h` or `--help` for instructions. 
 It has three main uses atm:
